@@ -78,7 +78,7 @@ while True:
 
 | 故障 | 症状 | 修复 |
 |------|------|------|
-| WebBridge 未运行 | 端口 10086 无监听 | `Start-Process kimi-webbridge -Arg "start"` |
+| WebBridge 未运行 | 端口 10086 无监听 | `kimi-webbridge start`（Windows 亦可 `Start-Process kimi-webbridge -Arg "start"`） |
 | Session 无标签页 | evaluate("1+1") → "" (空) | 先 `navigate()` 建立 session |
 | 扩展未连接 | extension_connected=false | 重启 Chrome |
 | 未登录 | 页面无已登录用户标志（我的/消息/头像） | 用户手动登录 Chrome Boss 直聘 |

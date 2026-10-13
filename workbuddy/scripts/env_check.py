@@ -20,6 +20,7 @@ import os
 import subprocess
 import socket
 import json
+import shutil
 
 # 路径引导：确保 scripts 包可导入（无论以脚本直接运行还是被其它模块导入）
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -57,22 +58,34 @@ class EnvResult:
 
 # ── Chrome 检测 ────────────────────────────────────
 def _check_chrome():
-    """检测 Chrome 是否安装在常见路径。"""
-    chrome_paths = [
-        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-        os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
-    ]
-    for p in chrome_paths:
+    """检测 Chrome 是否已安装（跨平台：Windows / Linux / macOS）。"""
+    if os.name == "nt":
+        candidates = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
+        ]
+        which_names = ["chrome"]
+    else:
+        candidates = [
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/snap/bin/chromium",
+            "/opt/google/chrome/chrome",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        ]
+        which_names = ["google-chrome", "google-chrome-stable", "chromium",
+                       "chromium-browser", "chrome"]
+    for p in candidates:
         if os.path.exists(p):
             return True, f"已安装 ({p})"
-    # Windows 还可尝试 where/which
-    try:
-        r = subprocess.run(["where", "chrome"], capture_output=True, text=True, timeout=5)
-        if r.returncode == 0 and r.stdout.strip():
-            return True, f"已安装 ({r.stdout.strip().splitlines()[0]})"
-    except Exception:
-        pass
+    # 退回到 PATH 查找（Windows 用 where / POSIX 用 shutil.which）
+    for name in which_names:
+        p = shutil.which(name)
+        if p:
+            return True, f"已安装 ({p})"
     return False, (
         "未检测到 Chrome 浏览器。\n"
         "   请前往 https://www.google.com/chrome/ 下载安装。"

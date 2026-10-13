@@ -271,21 +271,47 @@ def wait_for_feedback(expected_texts, timeout=8, poll=0.5,
     return None
 
 
+# 本 skill 的安装根目录（scripts/ 的上级），用于识别"同技能脚本进程"与锁文件落点。
+# 从 __file__ 动态解析，避免硬编码 ~/.workbuddy/... 或盘符路径，跨平台/任意安装位置均可用。
+_SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 def _list_other_boss_script_pids():
     """枚举除自己外、正在运行的其他 boss-zhipin-deliver 脚本进程 pid。
 
-    仅靠进程名不够，必须看命令行含 'boss-zhipin-deliver/scripts/phase'，
-    避免误杀用户其它 python 程序。
+    仅靠进程名不够，必须看命令行含本技能 scripts/ 目录的绝对路径，
+    避免误杀用户其它 python 程序。Windows 用 PowerShell 枚举，POSIX 用 ps。
     """
     me = os.getpid()
     try:
-        ps = (r"Get-CimInstance Win32_Process -Filter \"Name='python.exe'\""
-              r" | Where-Object { $_.CommandLine -like '*boss-zhipin-deliver/scripts/phase*'"
-              r" -and $_.ProcessId -ne %d }"
-              r" | Select-Object -ExpandProperty ProcessId") % me
-        out = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+        if os.name == "nt":
+            ps = (r"Get-CimInstance Win32_Process -Filter \"Name='python.exe'\""
+                  r" | Where-Object { $_.CommandLine -like '*boss-zhipin-deliver*scripts*'"
+                  r" -and $_.ProcessId -ne %d }"
+                  r" | Select-Object -ExpandProperty ProcessId") % me
+            out = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                                 capture_output=True, text=True, timeout=20).stdout
+            return [int(x.strip()) for x in out.split() if x.strip().isdigit()]
+        # POSIX（Linux / macOS）：ps -eo pid=,args= 枚举，按命令行匹配本技能脚本路径
+        out = subprocess.run(["ps", "-eo", "pid=,args="],
                              capture_output=True, text=True, timeout=20).stdout
-        return [int(x.strip()) for x in out.split() if x.strip().isdigit()]
+        marker = os.path.join(_SKILL_DIR, "scripts")
+        known = ("_live_driver.py", "phase_stream.py", "env_check.py")
+        pids = []
+        for line in out.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(None, 1)
+            if len(parts) < 2 or not parts[0].isdigit():
+                continue
+            pid, cmd = int(parts[0]), parts[1]
+            if pid == me:
+                continue
+            # 绝对路径安装：命中本技能 scripts 目录；相对路径调用：命中本技能脚本文件名
+            if marker in cmd or any(k in cmd for k in known):
+                pids.append(pid)
+        return pids
     except Exception:
         return []
 
@@ -293,23 +319,27 @@ def _list_other_boss_script_pids():
 def kill_other_boss_scripts():
     """启动前强制清场：杀掉其它正在运行的 boss 脚本（防止抢同一标签页）。
 
-    返回被杀死的 pid 列表。
+    返回被杀死的 pid 列表。Windows 用 taskkill，POSIX 用 SIGTERM。
     """
     killed = []
     for pid in _list_other_boss_script_pids():
         try:
-            r = subprocess.run(["taskkill", "/F", "/PID", str(pid)],
-                               capture_output=True, text=True, timeout=10)
-            if r.returncode == 0:
+            if os.name == "nt":
+                r = subprocess.run(["taskkill", "/F", "/PID", str(pid)],
+                                   capture_output=True, text=True, timeout=10)
+                if r.returncode == 0:
+                    killed.append(pid)
+            else:
+                os.kill(pid, signal.SIGTERM)
                 killed.append(pid)
         except Exception:
             pass
     return killed
 
 
-# 标签页独占锁文件（记录当前占用脚本的 pid，供监督者读取"谁在控制 tab"）
-_TAB_LOCK_PATH = os.path.expanduser(
-    "~/.workbuddy/skills/boss-zhipin-deliver/.tab_lock")
+# 标签页独占锁文件（记录当前占用脚本的 pid，供监督者读取"谁在控制 tab"）。
+# 落点为本技能根目录（从 __file__ 解析），不再硬编码 ~/.workbuddy/... 路径。
+_TAB_LOCK_PATH = os.path.join(_SKILL_DIR, ".tab_lock")
 
 
 def acquire_tab_lock(script_name="unknown"):

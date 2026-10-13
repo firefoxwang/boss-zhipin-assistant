@@ -9,6 +9,7 @@
 **支持的运行环境**：本仓库同时提供两套目录版本 —— `/workbuddy`（适用于 WorkBuddy 智能体环境）与 `/marvis`（适用于 Marvis 智能体环境）。请根据您使用的智能体平台，选择对应目录下的文件进行部署和运行，两者内部文件结构相互独立，互不影响。
 
 1. **测试环境限制**：本 SKILL 目前属于**测试版**，仅在 **Windows 11** 系统下的 `workbuddy` 与 `marvis` 智能体中测试运行稳定。不保证在其他 Agent 框架中也能完美兼容或稳定运行。但相信以目前AI的能力，稍微提示一下它自行修改匹配一下即可适应您的使用环境。
+   - ✅ **`/workbuddy` 版本已做跨平台适配（Windows / Linux / macOS）**：脚本会自动识别操作系统（Chrome 安装路径检测、进程枚举/清理走 PowerShell 或 `ps`+`kill`、锁文件落点由 `__file__` 动态解析），**可直接在 Linux 上的 WorkBuddy 运行**。运行前用 `export BOSS_WORKDIR=<你的工作目录>`（不设则取当前目录）指定进度/汇报文件的落盘目录，并把命令中的 `python` 换成 `python3`（脚本已用 `#!/usr/bin/env python3`）。
 2. **浏览器要求**：运行必须基于 **Chrome 浏览器**，并且请务必在运行脚本前，**提前手动登录好你的 BOSS 直聘账号**。
 3. **前置插件**：必须在 Chrome 中安装 `Kimi WebBridge` 浏览器扩展插件。
    - 📥 插件下载地址：[https://www.kimi.com/zh-cn/features/webbridge](https://www.kimi.com/zh-cn/features/webbridge)

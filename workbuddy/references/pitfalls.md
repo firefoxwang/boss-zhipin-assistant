@@ -28,12 +28,20 @@
     - 过期锁（>3h 或 PID 不存在）自动清理
 
 **人工清理**:
+
+    Windows (PowerShell):
     ```powershell
     # 查僵尸进程
     Get-Process python* | Where-Object {$_.Path -match "python"} | ft Id,StartTime
     # 清理锁文件
-    ls $env:TEMP\boss_pipeline_locks\
-    del $env:TEMP\boss_pipeline_locks\pipeline_*.lock
+    Remove-Item $env:TEMP\boss_pipeline_locks\pipeline_*.lock -Force
+    ```
+    Linux / macOS (bash):
+    ```bash
+    # 查僵尸进程（匹配本技能脚本路径）
+    ps -eo pid,args | grep "boss-zhipin-deliver/scripts/" | grep -v grep
+    # 清理锁文件
+    rm -f /tmp/boss_pipeline_locks/pipeline_*.lock
     ```
 
 **教训**: 永远不要用 `sessions_spawn` 来跑 pipeline_quick。
@@ -76,10 +84,16 @@ daemon 日志显示 `Error: write pid: open C:\Users\W\.kimi-webbridge\daemon.pi
 新 daemon 认为已有实例在运行，自动退出。
 
 **解决**:
+
+Windows:
 ```powershell
 Remove-Item -Path "$env:USERPROFILE\.kimi-webbridge\daemon.pid" -Force
 ```
-删除后重新 `kimi-webbridge.exe start` 即可。
+Linux / macOS:
+```bash
+rm -f ~/.kimi-webbridge/daemon.pid
+```
+删除后重新 `kimi-webbridge start` 即可。
 
 **预防**: 在启动脚本前自动清理：
 ```python
@@ -343,12 +357,13 @@ if any(kw in salary for kw in EXCLUDE_SALARY):
 **现象:** 上次运行后 daemon 被 terminated，端口 10086 无监听。
 
 ```bash
-# 检查
-python3 -c "from scripts.webbridge_client import WebBridge; wb=WebBridge(); print(wb.health_check())"
+# 检查（在技能目录下执行）
+python3 -c "from scripts.webbridge_client import health_check; print(health_check())"
 
 # 启动
-Start-Process "C:\Users\W\.kimi-webbridge\bin\kimi-webbridge.exe" -ArgumentList "start"
-Start-Sleep -Seconds 5
+kimi-webbridge start                # Linux / macOS
+# Windows 亦可：Start-Process "kimi-webbridge" -ArgumentList "start"
+sleep 5
 ```
 
 ---

@@ -63,16 +63,17 @@
 
 然后生成运行命令并向你**展示档案摘要 + 命令，确认后再运行**：
 
-```powershell
-cd c:\Users\W\WorkBuddy\BOSS\boss-data
-$skill = "$HOME\.workbuddy\skills\boss-zhipin-deliver"
+```bash
+cd "$HOME/WorkBuddy/BOSS/boss-data"        # ← 改成你的工作目录（进度/汇报文件落在此目录）
+export BOSS_WORKDIR="$PWD"                 # 供 _live_driver.py 定位工作目录（不设则取当前目录）
+skill="$HOME/.workbuddy/skills/boss-zhipin-deliver"
 # 实时逐条行走投递（推荐路径·详见「🚶 逐条行走投递」）：
-python "$skill\scripts\_live_driver.py" walk                 # 进 BOSS 推荐页，呈现下一张卡表面
-python "$skill\scripts\_live_driver.py" open <jobId>          # 一次只开一张读 JD
-python "$skill\scripts\_live_driver.py" deliver <jobId> [公司] [薪资] [行业] [方向]  # 当场投
-python "$skill\scripts\_live_driver.py" walk --next           # 推进到下一张卡
+python3 "$skill/scripts/_live_driver.py" walk                 # 进 BOSS 推荐页，呈现下一张卡表面
+python3 "$skill/scripts/_live_driver.py" open <jobId>          # 一次只开一张读 JD
+python3 "$skill/scripts/_live_driver.py" deliver <jobId> [公司] [薪资] [行业] [方向]  # 当场投
+python3 "$skill/scripts/_live_driver.py" walk --next           # 推进到下一张卡
 # 收尾闭环（必做）：投递成果汇报 + 打赏 二合一页
-python "$skill\scripts\phase_stream.py" --mode report --workdir .
+python3 "$skill/scripts/phase_stream.py" --mode report --workdir .
 ```
 
 > 📌 "该不该投"由**智能体自身（AI 语义）**完成，全程**不调用任何外部 LLM API**、不依赖人工逐条确认。脚本只做机械硬门槛（城市/薪资）+ 执行智能体的 `deliver` 决策。
@@ -156,22 +157,22 @@ python "$skill\scripts\phase_stream.py" --mode report --workdir .
 
 ### 命令（scripts/_live_driver.py）
 
-```powershell
-$skill = "$HOME\.workbuddy\skills\boss-zhipin-deliver"
+```bash
+skill="$HOME/.workbuddy/skills/boss-zhipin-deliver"
 # ① 【默认起点·硬规则】进 BOSS 推荐页，游标回顶部，只呈现"下一张卡"的表面（v6.9 单卡制，绝不整列表）
-python "$skill\scripts\_live_driver.py" walk
+python3 "$skill/scripts/_live_driver.py" walk
 # ② 对当前这一张：表面命中 → 打开它读 JD（一次只开一张）
-python "$skill\scripts\_live_driver.py" open <jobId>
+python3 "$skill/scripts/_live_driver.py" open <jobId>
 # ③ 智能体读 JD 后若 APPROVE，当场投递（卡片仍在屏上）
-python "$skill\scripts\_live_driver.py" deliver <jobId> [公司] [薪资] [行业] [方向]   # 第5参[方向]=高层方向标签，供收尾汇报页按方向分组
+python3 "$skill/scripts/_live_driver.py" deliver <jobId> [公司] [薪资] [行业] [方向]   # 第5参[方向]=高层方向标签，供收尾汇报页按方向分组
 # ④ 投完/略过当前这张 → 推进游标，只呈现下一张卡的表面（自动跳过城市/薪资不过关 + 已投递的卡）
-python "$skill\scripts\_live_driver.py" walk --next
+python3 "$skill/scripts/_live_driver.py" walk --next
 # （⛔ 硬规则：仅当推荐页已穷尽 recommend_exhausted=true 时才放行；否则被代码拦截）推荐页穷尽后仍缺某方向（如茶室/营地/书店）→ 用关键词补刀：
-python "$skill\scripts\_live_driver.py" walk 茶室
+python3 "$skill/scripts/_live_driver.py" walk 茶室
 # （可选）当前可见卡已过完仍未投满：滚动加载更多后继续呈现下一张
-python "$skill\scripts\_live_driver.py" walk --more
+python3 "$skill/scripts/_live_driver.py" walk --more
 # （可选）重置行走状态/游标（换关键词或重来时）
-python "$skill\scripts\_live_driver.py" walk --reset
+python3 "$skill/scripts/_live_driver.py" walk --reset
 ```
 
 > **脚本只自动过两道无歧义硬门槛**：城市（≠目标城市则跳过；推荐页卡片城市字段偶缺时不误杀）、薪资下限（< min_salary_k 则跳过）。
@@ -287,25 +288,26 @@ AI 基于**语义理解**决定 APPROVE / REJECT，**不是关键词命中即过
 
 ## 快速执行
 
-```powershell
-cd c:\Users\W\WorkBuddy\BOSS\boss-data
-$skill = "$HOME\.workbuddy\skills\boss-zhipin-deliver"
+```bash
+cd "$HOME/WorkBuddy/BOSS/boss-data"        # ← 改成你的工作目录
+export BOSS_WORKDIR="$PWD"
+skill="$HOME/.workbuddy/skills/boss-zhipin-deliver"
 
 # ════════ 推荐（实时·逐条行走·推荐页优先）：walk → open → deliver → walk --next ════════
-python "$skill\scripts\_live_driver.py" walk              # 【默认起点】进 BOSS 推荐页，打印左侧表面清单
-python "$skill\scripts\_live_driver.py" open <jobId>       # 一次只开一张读 JD
-python "$skill\scripts\_live_driver.py" deliver <jobId> [公司] [薪资] [行业] [方向]   # 当场投（jid 必填，其余可选；[方向]供收尾汇报页分组；先自动选中并校验面板再点「立即沟通」）
-python "$skill\scripts\_live_driver.py" walk --next        # 自动跳过不过关卡、开下一张
+python3 "$skill/scripts/_live_driver.py" walk              # 【默认起点】进 BOSS 推荐页，呈现下一张卡的表面
+python3 "$skill/scripts/_live_driver.py" open <jobId>       # 一次只开一张读 JD
+python3 "$skill/scripts/_live_driver.py" deliver <jobId> [公司] [薪资] [行业] [方向]   # 当场投（jid 必填，其余可选；[方向]供收尾汇报页分组；先自动选中并校验面板再点「立即沟通」）
+python3 "$skill/scripts/_live_driver.py" walk --next        # 推进游标，呈现下一张卡的表面
 # 推荐页扫完仍缺某方向（如茶室/营地/书店）→ 才用关键词补刀：
-python "$skill\scripts\_live_driver.py" walk 文旅          # 关键词仅作推荐页供给不足时的补充
+python3 "$skill/scripts/_live_driver.py" walk 文旅          # 关键词仅作推荐页供给不足时的补充
 
 # ════════ 收尾闭环：生成「投递成果汇报 + 打赏」二合一页（必做）════════
-python "$skill\scripts\phase_stream.py" --mode report --workdir .   # 输出 投递汇总.html（自包含·二维码内嵌·按方向分组）
+python3 "$skill/scripts/phase_stream.py" --mode report --workdir .   # 输出 投递汇总.html（自包含·二维码内嵌·按方向分组）
 # 然后用 present_files 把 投递汇总.html 展示给用户（不可省略）
 
 # 独立诊断/核对（不投递主流程）：
-python "$skill\scripts\phase_stream.py" --mode verify --workdir .   # 交叉核对真实沟通列表（读后自动回推荐页）
-python "$skill\scripts\phase_stream.py" --diag --workdir .           # 只读 dump 浮层 + 弹窗分类 + 日上限检测
+python3 "$skill/scripts/phase_stream.py" --mode verify --workdir .   # 交叉核对真实沟通列表（读后自动回推荐页）
+python3 "$skill/scripts/phase_stream.py" --diag --workdir .           # 只读 dump 浮层 + 弹窗分类 + 日上限检测
 ```
 
 > **首次使用前**：填写技能目录下的 `user_profile.json`（重点是 `role_summary` 一句话自述 + `prefer`/`avoid` 清单）。智能体还可用 `BOSS_PROFILE=/path/your.json` 注入不同档案，实现「一套技能、多份档案」服务不同行业的人。
@@ -341,12 +343,12 @@ python "$skill\scripts\phase_stream.py" --diag --workdir .           # 只读 du
 
 ## WebBridge 故障处理
 
-```powershell
+```bash
 kimi-webbridge status
 # 清理 PID 残留
-python -c "import os,glob; [os.remove(f) for f in glob.glob(os.path.expanduser('~/.kimi-webbridge*.pid')) + glob.glob(os.path.expanduser('~/.workbuddy/*.pid')) if os.path.exists(f)]"
+python3 -c "import os,glob; [os.remove(f) for f in glob.glob(os.path.expanduser('~/.kimi-webbridge*.pid')) + glob.glob(os.path.expanduser('~/.workbuddy/*.pid')) if os.path.exists(f)]"
 kimi-webbridge start
-python -c "from scripts.webbridge_client import health_check; print(health_check())"
+cd "$HOME/.workbuddy/skills/boss-zhipin-deliver" && python3 -c "from scripts.webbridge_client import health_check; print(health_check())"
 ```
 
 ---
@@ -357,8 +359,8 @@ python -c "from scripts.webbridge_client import health_check; print(health_check
 
 ### 单独运行检测
 
-```powershell
-python "$HOME\.workbuddy\skills\boss-zhipin-deliver\scripts\env_check.py"
+```bash
+python3 "$HOME/.workbuddy/skills/boss-zhipin-deliver/scripts/env_check.py"
 ```
 
 ---
@@ -369,7 +371,7 @@ python "$HOME\.workbuddy\skills\boss-zhipin-deliver\scripts\env_check.py"
 
 1. **生成「投递成果汇报 + 打赏」二合一自包含页**：
    ```bash
-   python "$skill/scripts/phase_stream.py" --mode report --workdir <工作目录>
+   python3 "$skill/scripts/phase_stream.py" --mode report --workdir <工作目录>
    ```
    该函数（`write_summary_page`）读取 `工作目录/stream_progress.json`，按每条投递记录的 `direction` 字段分组，
    输出 `<工作目录>/投递汇总.html`——**单文件自包含**：微信/支付宝赞赏码以 base64 内嵌，任何环境（预览面板/分享/本地）打开都能正常显示，不再有"二维码空白"问题；

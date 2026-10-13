@@ -85,7 +85,9 @@ from scripts.webbridge_client import (
 )
 from scripts.config_v3 import load_profile
 
-WORKDIR = "C:/Users/W/WorkBuddy/BOSS/boss-data"
+# 工作目录：优先环境变量 BOSS_WORKDIR，否则当前目录（跨平台，无硬编码盘符/用户路径）。
+# 进度文件（walk_state.json / stream_progress.json）与收尾 report 的 --workdir 应指向同一目录。
+WORKDIR = os.environ.get("BOSS_WORKDIR") or os.getcwd()
 STATE_FILE = os.path.join(WORKDIR, "walk_state.json")
 
 

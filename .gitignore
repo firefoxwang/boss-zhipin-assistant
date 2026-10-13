@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# BOSS skill runtime artifacts
+walk_state.json
+stream_progress*.json
+stream_seen*.json
+diag_*.json
+.tab_lock
+投递汇总.html
+.onboarded
+candidates/
